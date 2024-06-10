@@ -1,0 +1,70 @@
+import { TextUtils } from '../utils/text-utils'
+import { stateMachine } from '../config/state-machine'
+import { type Token } from '../types/general'
+
+export class ValidationService {
+  async execValidation(odlContent: string): Promise<null | Token> {
+    const tokens = TextUtils.parseTextTokens(odlContent)
+
+    let currentState = ''
+    let currentEvent = 'begin'
+
+    const verifiedTokens = []
+
+    for (const token of tokens) {
+      const existentTransition = stateMachine.find((transition) => {
+        if (currentEvent === 'end') {
+          return token
+        }
+        const valueToCompare = token.value
+
+        const isSameInitialState = transition.initialState === currentState
+        const isSameFinalState = transition.finalState === valueToCompare
+        const canBeIdentifier =
+          token.type === 'IDENTIFIER' && currentState !== ';'
+        return (
+          isSameInitialState &&
+          (canBeIdentifier || token.type === 'TYPE' || isSameFinalState)
+        )
+      })
+
+      const isPossibleEndToken = stateMachine.find((transition) => {
+        const valueToCompare = token.value
+        if (valueToCompare === ';') {
+          return (
+            transition.initialState === valueToCompare &&
+            transition.event === 'end'
+          )
+        }
+        return false
+      })
+      if (existentTransition == null && isPossibleEndToken == null) {
+        console.log(
+          '!existentTransition && !isPossibleEndToken',
+          verifiedTokens,
+        )
+        return token
+      }
+
+      if (existentTransition != null) {
+        verifiedTokens.push(token)
+      }
+
+      if (isPossibleEndToken != null && existentTransition == null) {
+        if (verifiedTokens.length !== tokens.length) {
+          console.log('verifiedTokens.length!==tokens.length')
+          return token
+        }
+        return null
+      }
+
+      if (existentTransition == null) {
+        continue
+      }
+
+      currentState = existentTransition.finalState
+      currentEvent = existentTransition.event
+    }
+    return null
+  }
+}
