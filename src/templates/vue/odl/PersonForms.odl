@@ -1,0 +1,38 @@
+import Person;
+
+module PersonForms{
+
+  input IName {
+    config type = "text";
+    config label = "Name";
+    config id = "name";
+    config canFilter = true;
+    config required = true;
+  }
+  input ITaxId {
+    config type = "text";
+    config label = "Tax Id";
+    config canFilter = true;
+    config required = true;
+    config id = "taxId";
+  }
+  input IEmail {
+    config type = "text";
+    config label = "Email";
+    config canFilter = true;
+    config required = true;
+    config id = "email";
+  }
+  input IPhone {
+    config type = "text";
+    config label = "Phone";
+    config canFilter = true;
+    config required = true;
+    config id = "phone";
+  }
+  class PersonForm use POForm {
+    attribute Person poobject;
+    template DataTable [IName, ITaxId, IEmail,IPhone];
+
+  }
+}

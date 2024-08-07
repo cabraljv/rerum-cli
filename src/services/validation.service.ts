@@ -22,9 +22,13 @@ export class ValidationService {
         const isSameFinalState = transition.finalState === valueToCompare
         const canBeIdentifier =
           token.type === 'IDENTIFIER' && currentState !== ';'
+        const canBeValue = token.type === 'VALUE' && currentState !== ';'
         return (
           isSameInitialState &&
-          (canBeIdentifier || token.type === 'TYPE' || isSameFinalState)
+          (canBeValue ||
+            canBeIdentifier ||
+            token.type === 'TYPE' ||
+            isSameFinalState)
         )
       })
 
@@ -42,6 +46,7 @@ export class ValidationService {
         console.log(
           '!existentTransition && !isPossibleEndToken',
           verifiedTokens,
+          token,
         )
         return token
       }

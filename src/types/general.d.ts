@@ -4,6 +4,7 @@ export type TokenType =
   | 'IDENTIFIER'
   | 'TYPE'
   | 'UNKNOWN'
+  | 'VALUE'
 
 export interface Token {
   value: string
@@ -51,4 +52,17 @@ type TagsItemValues = 'name' | 'type' | 'className' | 'isArray' | 'id'
 export interface TagsItem {
   key: string
   value: TagsItemValues
+}
+
+export interface TemplateInputs {
+  type: 'DataTable'
+  fields: InputField[]
+}
+
+export interface InputField {
+  type: 'text' | 'number'
+  label: string
+  id: string
+  canFilter: boolean
+  required: boolean
 }

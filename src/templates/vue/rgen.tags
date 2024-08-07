@@ -1,0 +1,4 @@
+module=moduleName:name
+class=className:name
+attribute=attributeName:name,is_array:isArray,attributeType:type
+import=importName:name

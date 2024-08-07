@@ -11,7 +11,10 @@ export const RESERVED_WORDS = [
   'module',
   'include',
   'typedef',
+  'use',
+  'input',
+  'config',
   'listof',
 ]
-export const RESERVED_CHARS = ['{', '}', ';', '(', ')']
+export const RESERVED_CHARS = ['{', '}', ';', '(', ')', '=']
 export const TYPES = ['string', 'long', 'integer']

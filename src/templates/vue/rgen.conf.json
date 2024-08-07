@@ -1,0 +1,25 @@
+{
+  "tagsFile": "rgen.tags",
+  "outputDir": "src",
+  "archetypesFiles": [
+    {
+      "tplFile": "tpl/view-page.tpl",
+      "outputFileName": "views/@module@Page.vue",
+      "modulesToGenerate": ["PersonForms"],
+      "alias": "Views"
+    },
+    {
+      "tplFile": "tpl/router.tpl",
+      "outputFileName": "router/index.js",
+      "modulesToGenerate": ["PersonForms"],
+      "singleFile": true,
+      "alias": "Routes"
+    },
+    {
+      "tplFile": "tpl/service.tpl",
+      "outputFileName": "services/@module@-service.js",
+      "modulesToGenerate": ["Person"],
+      "alias": "Services"
+    }
+  ]
+}

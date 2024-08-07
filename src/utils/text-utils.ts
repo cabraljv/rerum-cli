@@ -24,13 +24,21 @@ export class TextUtils {
 
     let lastToken = null
 
-    const words = line.trim().split(/\s+/)
+    const regex = /"([^"]*)"|\[([^\]]+)]|\S+/g
+    const words = line.trim().match(regex) ?? []
 
     for (const word of words) {
       const initialColumn = line.indexOf(word, startColumn)
-      const tokensAndChars = word
-        .split(/(\b\w+\b|[{}();])/g)
-        .filter((char) => char.trim() !== '')
+      let tokensAndChars = [word]
+      if (
+        (!word.startsWith('[') || !word.endsWith(']')) &&
+        (!word.startsWith('"') || !word.endsWith('"'))
+      ) {
+        tokensAndChars = word
+          .split(/(\b\w+\b|[{}();])/g)
+          .filter((char) => char.trim() !== '')
+      }
+
       for (const tokenOrChar of tokensAndChars) {
         const column = line.indexOf(tokenOrChar, initialColumn)
         const newToken: Token = {
@@ -58,9 +66,18 @@ export class TextUtils {
     if (RESERVED_WORDS.includes(token)) {
       return 'RESERVED_WORD'
     }
-    if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)) {
+    const isStringValue = token.startsWith('"') && token.endsWith('"')
+    const isArrayValue = token.startsWith('[') && token.endsWith(']')
+    if (
+      isStringValue ||
+      isArrayValue ||
+      /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(token)
+    ) {
       if (lastTokenValue === 'attribute') {
         return 'TYPE'
+      }
+      if (lastTokenValue === '=') {
+        return 'VALUE'
       }
       return 'IDENTIFIER'
     }

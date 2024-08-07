@@ -2,11 +2,17 @@ import {
   type IItem,
   type GenerationConfig,
   type TagsItem,
-  type IAssociation,
+  type TemplateInputs,
+  type InputField,
 } from '../types/general'
 import { TYPES } from '../utils/config'
 import { setupDb } from '../utils/database'
 import { FileSystem } from '../utils/file-system'
+
+// eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
+interface MutableInputField extends InputField {
+  [key: string]: string | boolean | number
+}
 
 export class GenerationService {
   constructor(private readonly config: GenerationConfig) {}
@@ -22,7 +28,6 @@ export class GenerationService {
           model: Association,
           as: 'references',
           attributes: ['associationType'],
-          where: { associationType: 'generate' },
           include: [
             {
               model: Item,
@@ -41,9 +46,13 @@ export class GenerationService {
         const modulesToGenerate = modules.filter((module) =>
           archetype.modulesToGenerate.includes(module.name),
         )
+
         await this.generateAllCodeFromObjectDictSingleFile(
           modulesToGenerate,
           archetype.tplFile,
+          FileSystem.fileExists(archetype.outputFileName)
+            ? FileSystem.readFileContent(archetype.outputFileName)
+            : '',
         )
         continue
       }
@@ -62,7 +71,50 @@ export class GenerationService {
   async generateAllCodeFromObjectDictSingleFile(
     modulesToGenerate: IItem[],
     tplFile: string,
-  ): Promise<void> {}
+    existentOutputFileContent: string,
+  ): Promise<void> {
+    console.log(`Generating single file code using ${tplFile}`)
+    let tplContent = FileSystem.readFileContent(tplFile)
+    const contentTags = this.extractContentBetweenTags(tplContent)
+
+    for (const contentTag of contentTags) {
+      const currentTag = contentTag.split('@')[1]
+      const currentTagType = currentTag.replace('begin_', '')
+      // remove first and last tags
+      const parsedContent = contentTag
+        .replace(`@begin_${currentTagType}@`, '')
+        .replace(`@end_${currentTagType}@`, '')
+
+      let generatedModuleContent = ''
+
+      for (const module of modulesToGenerate) {
+        const contentWithVariables = await this.populateVariables(
+          parsedContent,
+          module,
+          currentTagType,
+        )
+        const content = await this.insertItemContent(
+          module.id,
+          contentWithVariables,
+          'module',
+          existentOutputFileContent,
+        )
+        generatedModuleContent += content
+      }
+      tplContent = tplContent.replace(contentTag, generatedModuleContent)
+    }
+
+    const archetypeToGenerate = this.config.archetypesFiles.find(
+      (item) => item.tplFile === tplFile,
+    )
+    if (!archetypeToGenerate) return
+
+    const filename = archetypeToGenerate.outputFileName
+
+    const outputFilePath = `${this.config.outputDir}/${filename}`
+
+    FileSystem.writeToFile(outputFilePath, tplContent)
+  }
 
   async generateModuleCode(moduleId: string, tplFile: string): Promise<void> {
     const { Item } = await setupDb()
@@ -160,7 +212,7 @@ export class GenerationService {
 
           const contentWithVars = await this.populateVariables(
             parsedContent,
-            classItem,
+            await this.getCorrectClassVariables(classItem),
             currentTagType,
           )
 
@@ -179,20 +231,16 @@ export class GenerationService {
           .replace(`@begin_${currentTagType}@`, '')
           .replace(`@end_${currentTagType}@`, '')
 
-        const items: IAssociation[] = await Association.findAll({
-          where: {
-            referenceId: currentClassId ?? moduleId,
-            associationType: currentTagType,
-          },
-          include: [{ model: Item, as: 'referenced' }],
-        })
+        const classAttributes = await this.getClassAttributes(
+          currentClassId ?? moduleId,
+        )
 
         let generatedContent = ''
-        for (const item of items) {
-          if (!item.referenced) continue
+        for (const attribute of classAttributes) {
+          if (!attribute) continue
           generatedContent += await this.populateVariables(
             parsedContent,
-            item.referenced,
+            attribute,
             currentTagType,
           )
         }
@@ -290,10 +338,256 @@ export class GenerationService {
           .join('\n')
 
         itemContent = itemContent.replace(contentTag, codeBlockContent)
+      } else if (currentTagType === 'template_inputs') {
+        console.log('template inputs')
+        if (!currentClassId) continue
+        const usedClassName = await this.verifyClassUse(currentClassId)
+
+        if (usedClassName !== 'POForm') {
+          throw new Error("The unique 'use' class available is 'POForm'")
+        }
+
+        const templateInputs = await this.getClassTemplateInputs(currentClassId)
+        if (!templateInputs) continue
+        if (itemContent.includes('#JsonData#')) {
+          const inputsStrConten: string = templateInputs.fields
+            .map((i) => JSON.stringify(i, null, 2))
+            .join(',')
+          itemContent = itemContent.replace(contentTag, inputsStrConten)
+        } else {
+          itemContent = itemContent.replace(contentTag, '')
+        }
+        // console.log('templateInputs', templateInputs)
       }
     }
 
     return itemContent
+  }
+
+  private async verifyClassUse(classId: string): Promise<string | null> {
+    const { Item, Association } = await setupDb()
+
+    const currentClass = await Item.findByPk(classId)
+
+    if (!currentClass) return null
+
+    const useAssociation = await Association.findOne({
+      where: {
+        associationType: 'use',
+        referenceId: classId,
+      },
+    })
+
+    if (!useAssociation) return null
+
+    const usedClass = await Item.findByPk(useAssociation.referencedId)
+
+    return usedClass?.name ?? null
+  }
+
+  private async getClassAttributes(classId: string): Promise<IItem[]> {
+    const { Item, Association } = await setupDb()
+    const classUse = await this.verifyClassUse(classId)
+    if (!classUse || classUse !== 'POForm') {
+      const dbAssociationAttributes = await Association.findAll({
+        where: {
+          referenceId: classId,
+          associationType: 'attribute',
+        },
+        include: [
+          {
+            model: Item,
+            as: 'referenced',
+          },
+        ],
+      })
+
+      const validItems = dbAssociationAttributes.map(
+        (association) => association.referenced,
+      )
+      const validItemsToReturn = []
+      for (const item of validItems) {
+        if (item) validItemsToReturn.push(item)
+      }
+
+      return validItemsToReturn
+    } else {
+      const dbAssociationAttributes = await Association.findAll({
+        where: {
+          referenceId: classId,
+          associationType: 'attribute',
+        },
+        include: [
+          {
+            model: Item,
+            as: 'referenced',
+          },
+        ],
+      })
+      const poObjectClass = dbAssociationAttributes.find(
+        (as) => as.referenced?.name === 'poobject',
+      )
+      if (!poObjectClass) throw new Error('poobject attribute not found')
+
+      const usedClassAttributes = await Association.findAll({
+        where: {
+          referenceId: poObjectClass.referenced?.type,
+          associationType: 'attribute',
+        },
+        include: [
+          {
+            model: Item,
+            as: 'referenced',
+          },
+        ],
+      })
+
+      const validItems = usedClassAttributes.map(
+        (association) => association.referenced,
+      )
+
+      const validItemsToReturn = []
+      for (const item of validItems) {
+        if (item) validItemsToReturn.push(item)
+      }
+
+      return validItemsToReturn
+    }
+  }
+
+  private async getCorrectClassVariables(classItem: IItem): Promise<IItem> {
+    const { Item, Association } = await setupDb()
+    const classUse = await this.verifyClassUse(classItem.id)
+    if (classUse) {
+      const dbAssociationAttributes = await Association.findAll({
+        where: {
+          referenceId: classItem.id,
+          associationType: 'attribute',
+        },
+        include: [
+          {
+            model: Item,
+            as: 'referenced',
+          },
+        ],
+      })
+      const poObjectClass = dbAssociationAttributes.find(
+        (as) => as.referenced?.name === 'poobject',
+      )
+
+      if (!poObjectClass?.referenced)
+        throw new Error('poobject attribute not found')
+
+      const poobjectClassType = await Item.findByPk(
+        poObjectClass?.referenced.type,
+      )
+      if (!poobjectClassType)
+        throw new Error('poobject attribute type not found')
+      return poobjectClassType
+    }
+    return classItem
+  }
+
+  private async getClassTemplateInputs(
+    classId: string,
+  ): Promise<TemplateInputs | null> {
+    const { Item, Association } = await setupDb()
+
+    const classTemplate = await Association.findAll({
+      where: {
+        referenceId: classId,
+      },
+      include: [
+        {
+          model: Item,
+          as: 'referenced',
+        },
+      ],
+    })
+
+    const templateAssociation = classTemplate.find(
+      (i) => i.associationType === 'template',
+    )
+
+    if (!templateAssociation) {
+      return null
+    }
+
+    const templateItemId = templateAssociation.referencedId
+
+    const templateInputs = await Association.findAll({
+      where: {
+        referenceId: templateItemId,
+      },
+    })
+
+    const inputs: InputField[] = []
+
+    for (const templateInput of templateInputs) {
+      const baseTemplateInput: MutableInputField = {
+        type: 'text',
+        label: 'Label',
+        id: 'inputId',
+        canFilter: true,
+        required: true,
+      }
+
+      const inputConfigs = await Association.findAll({
+        where: {
+          referenceId: templateInput.referencedId,
+        },
+        include: {
+          model: Item,
+          as: 'referenced',
+        },
+      })
+      for (const inputConfigItem of inputConfigs) {
+        if (!inputConfigItem.referenced) continue
+        const inputItemKey = inputConfigItem.referenced.name
+        if (
+          Object.prototype.hasOwnProperty.call(baseTemplateInput, inputItemKey)
+        ) {
+          const isStr = ['type', 'label', 'id'].includes(inputItemKey)
+          const isBool = ['canFilter', 'required', 'canAdd'].includes(
+            inputItemKey,
+          )
+          const isInt = ['min', 'max', 'step'].includes(inputItemKey)
+          const isCode = ['format'].includes(inputItemKey)
+          if (isStr) {
+            // remove first and last char
+            const formattedValue =
+              `${inputConfigItem.referenced.value}`.substring(
+                1,
+                `${inputConfigItem.referenced.value}`.length - 1,
+              )
+            baseTemplateInput[inputItemKey] = formattedValue
+          }
+          if (isBool) {
+            baseTemplateInput[inputItemKey] =
+              `${inputConfigItem.referenced.value}` === 'true'
+          }
+          if (isInt) {
+            baseTemplateInput[inputItemKey] = parseInt(
+              `${inputConfigItem.referenced.value}`,
+            )
+          }
+          if (isCode) {
+            const formattedValue =
+              `${inputConfigItem.referenced.value}`.substring(
+                1,
+                `${inputConfigItem.referenced.value}`.length - 1,
+              )
+            baseTemplateInput[inputItemKey] = formattedValue
+          }
+        }
+      }
+      inputs.push(baseTemplateInput)
+    }
+
+    return {
+      type: 'DataTable',
+      fields: inputs,
+    }
   }
 
   extractContentBetweenTags(template: string): string[] {

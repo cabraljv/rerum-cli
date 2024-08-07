@@ -56,6 +56,26 @@ export const stateMachine = [
   },
   {
     event: 'token',
+    initialState: '}',
+    finalState: 'class',
+  },
+  {
+    event: 'token',
+    initialState: 'idClass',
+    finalState: 'use',
+  },
+  {
+    event: 'token',
+    initialState: 'use',
+    finalState: 'idUsed',
+  },
+  {
+    event: 'token',
+    initialState: 'idUsed',
+    finalState: '{',
+  },
+  {
+    event: 'token',
     initialState: 'idClass',
     finalState: 'extends',
   },
@@ -183,6 +203,81 @@ export const stateMachine = [
     event: 'token',
     initialState: ';',
     finalState: 'attribute',
+  },
+  {
+    event: 'token',
+    initialState: '{',
+    finalState: 'input',
+  },
+  {
+    event: 'token',
+    initialState: '}',
+    finalState: 'input',
+  },
+  {
+    event: 'token',
+    initialState: 'input',
+    finalState: 'idInput',
+  },
+  {
+    event: 'token',
+    initialState: 'idInput',
+    finalState: '{',
+  },
+  {
+    event: 'token',
+    initialState: '{',
+    finalState: 'config',
+  },
+  {
+    event: 'token',
+    initialState: ';',
+    finalState: 'config',
+  },
+  {
+    event: 'token',
+    initialState: 'config',
+    finalState: 'idConfig',
+  },
+  {
+    event: 'token',
+    initialState: 'idConfig',
+    finalState: '=',
+  },
+  {
+    event: 'token',
+    initialState: '=',
+    finalState: 'valueInputConfig',
+  },
+  {
+    event: 'token',
+    initialState: 'valueInputConfig',
+    finalState: ';',
+  },
+  {
+    event: 'token',
+    initialState: ';',
+    finalState: 'template',
+  },
+  {
+    event: 'token',
+    initialState: '{',
+    finalState: 'template',
+  },
+  {
+    event: 'token',
+    initialState: 'template',
+    finalState: 'idTemplate',
+  },
+  {
+    event: 'token',
+    initialState: 'idTemplate',
+    finalState: 'templateInputs',
+  },
+  {
+    event: 'token',
+    initialState: 'templateInputs',
+    finalState: ';',
   },
   {
     event: 'end',

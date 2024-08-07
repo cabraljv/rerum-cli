@@ -1,0 +1,15 @@
+module Person {
+
+  typedef string TName;
+  typedef string TTaxId;
+  typedef string TEmail;
+  typedef string TPhone;
+
+  class Person {
+    attribute TName name;
+    attribute TTaxId taxId;
+    attribute TEmail email;
+    attribute TPhone phone;
+  }
+
+}
