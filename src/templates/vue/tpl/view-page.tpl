@@ -61,10 +61,11 @@ import DataFilter from '@/components/DataFilter.vue'
 import DataTable from '@/components/DataTable.vue'
 import EditModal from '@/components/EditModal.vue'
 import AddModal from '@/components/AddModal.vue'
+import generateData from '@/utils/generator'
 import {
   create#className#,
   delete#className#,
-  edit#className#,
+  update#className#,
   get#className#s,
 } from '@/services/#className#-service'
 
@@ -101,6 +102,7 @@ export default {
     }
   },
   async created() {
+    generateData(this.dataTypes,'#className#')
     this.loadings.fetch = true
     await this.fetchData({})
     this.pagesCount = Math.ceil(this.allRows.length / 10)
@@ -111,10 +113,7 @@ export default {
       console.log(data)
     },
     verifyPerm(perm) {
-      return (
-        this.$store.state?.session?.permissions &&
-        this.$store.state.session.permissions.includes(perm)
-      )
+      return true
     },
     async onDeleteItem(data) {
       this.editModal.open = false
@@ -128,7 +127,7 @@ export default {
       this.editModal.open = false
       this.editModal.data = []
       this.loadings.fetch = true
-      await edit#className#(data)
+      await update#className#(data)
       await this.fetchData({})
       this.loadings.fetch = false
     },
@@ -153,6 +152,7 @@ export default {
     async fetchData(filters) {
       const { data, total } = await get#className#s(filters, this.currentPage, 10)
       this.allRows = data
+      console.log(this.allRows, total,'data')
       this.pagesCount = Math.ceil(total / 10)
     },
 

@@ -8,6 +8,8 @@
       <div class="outside-item">
         <v-row class="ma-0">
           <span class="text-subtitle-1">
+            aa
+            {{item}}
             {{ item[nameLabelKey] }}
           </span>
           <v-spacer></v-spacer>
@@ -47,6 +49,7 @@
           <v-row class="ma-0">
             <span class="text-body-2">
               {{ child.label }}
+              aaa
             </span>
             <v-spacer></v-spacer>
             <v-btn
@@ -94,13 +97,13 @@
     </div>
     <div v-if="inlineCreationOpen" class="pa-3">
       <span class="text-h6">Adicionar novo item</span>
-      <template v-for="item in dataTypes" :key="item.name">
+      <template v-for="item of dataTypes" :key="item.id">
         <v-text-field
           v-if="item.type === 'text'"
           :label="item.label"
-          :name="item.name"
+          :name="item.id"
           density="compact"
-          v-model="creationData[item.name]"
+          v-model="creationData[item.id]"
           variant="outlined"
           class="mt-3"
           :rules="item.required ? [(v) => !!v || 'Campo obrigatório'] : []"
@@ -180,10 +183,10 @@ export default {
   },
   computed: {
     nameLabelKey() {
-      return this.dataTypes.find((type) => type.showAsName)?.name
+      return this.dataTypes.find((type) => type.showAsName)?.id || 'name'
     },
     addableAttributeKey() {
-      return this.dataTypes.find((type) => type.treeViewerAddable)?.name
+      return this.dataTypes.find((type) => type.treeViewerAddable)?.id
     },
     autoCompleteValues() {
       if (!this.openItem) return []
@@ -205,7 +208,7 @@ export default {
     async onCreateChildItem(item, childId) {
       this.loadings.addItem = true
       const childType = this.dataTypes.find(
-        (type) => type.name === this.addableAttributeKey,
+        (type) => type.id === this.addableAttributeKey,
       )
       const addedValue = childType.possibleValues.find(
         (value) => value.value === childId,

@@ -529,6 +529,7 @@ export class GenerationService {
         label: 'Label',
         id: 'inputId',
         canFilter: true,
+        canAdd: true,
         required: true,
       }
 

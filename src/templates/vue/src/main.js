@@ -6,14 +6,13 @@
 
 // Plugins
 import { registerPlugins } from '@/plugins'
-import store from './store'
 // Components
 import App from './App.vue'
 
 // Composables
 import { createApp } from 'vue'
 
-const app = createApp(App).use(store)
+const app = createApp(App)
 
 registerPlugins(app)
 

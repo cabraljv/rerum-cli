@@ -109,7 +109,7 @@ export default {
   computed: {
     keysToName() {
       const names = this.dataTypes.reduce((acc, item) => {
-        acc[item.name] = item.label
+        acc[item.id] = item.label
 
         return acc
       }, {})
@@ -124,12 +124,12 @@ export default {
   },
   methods: {
     isItemAObject(key) {
-      const item = this.dataTypes.find((item) => item.name === key)
+      const item = this.dataTypes.find((item) => item.id === key)
 
       return item && item.type === 'object'
     },
     getObjectData(key) {
-      const item = this.dataTypes.find((item) => item.name === key)
+      const item = this.dataTypes.find((item) => item.id === key)
 
       return item
     },

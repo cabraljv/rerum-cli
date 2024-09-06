@@ -306,7 +306,7 @@ export default {
       const data = {}
       this.formattedDataTypes.forEach((item) => {
         if (item.type === 'number' && item.value && item.value.length === 2) {
-          data[item.name] = {
+          data[item.id] = {
             min: Number(item.value[0]),
             max: Number(item.value[1]),
           }
@@ -314,13 +314,13 @@ export default {
         }
         if (item.type === 'date' && item.value) {
           if (item.value.length > 1) {
-            data[item.name] = [item.value.shift(), item.value.pop()]
+            data[item.id] = [item.value.shift(), item.value.pop()]
             return
           }
-          data[item.name] = [item.value[0], item.value[0]]
+          data[item.id] = [item.value[0], item.value[0]]
           return
         }
-        data[item.name] = item.value
+        data[item.id] = item.value
       })
       return data
     },
@@ -328,7 +328,7 @@ export default {
   methods: {
     onPresetChange() {
       for (const item in this.preset) {
-        const dataType = this.formattedDataTypes.find((dt) => dt.name === item)
+        const dataType = this.formattedDataTypes.find((dt) => dt.id === item)
         if (dataType) {
           dataType.value = this.preset[item]
         }
@@ -346,6 +346,7 @@ export default {
       })
     },
     onSubmitDataFormatter() {
+      console.log(this.formattedFilter, 'formattedFilter')
       this.onSubmitData(this.formattedFilter)
     },
     onSearchPreset(text) {
@@ -364,7 +365,7 @@ export default {
     onSaveCustomPresetEvent() {
       this.onSaveCustomPreset({ name: this.preset, data: this.formattedFilter })
     },
-    formatDate(dates, name) {
+    formatDate(dates, id) {
       if (dates.length > 1) {
         const firstDate = new Date(Math.min(...dates.map((d) => d.getTime())))
         const lastDate = new Date(Math.max(...dates.map((d) => d.getTime())))
@@ -376,7 +377,7 @@ export default {
           selectedDates.push(addDays(firstDate, i))
         }
         this.formattedDataTypes = this.formattedDataTypes.map((item) => {
-          if (item.name === name) {
+          if (item.id === id) {
             return {
               ...item,
               value: selectedDates,
@@ -391,7 +392,7 @@ export default {
         return
       }
       this.formattedDataTypes = this.formattedDataTypes.map((item) => {
-        if (item.name === name) {
+        if (item.id === id) {
           return {
             ...item,
             formattedValue: `${format(dates[0], 'dd-MM-yyyy')}`,

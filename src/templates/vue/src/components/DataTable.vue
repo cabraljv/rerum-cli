@@ -112,16 +112,17 @@ export default {
   },
   watch: {
     page() {
+      console.log('page', this.page)
       this.onChangePage(this.page)
     },
   },
   methods: {
     getItemTypeByKey(key) {
-      return this.dataTypes.find((dt) => dt.name === key)
+      return this.dataTypes.find((dt) => dt.id === key)
     },
-    getSelectLabel(name, value) {
+    getSelectLabel(id, value) {
       return this.dataTypes
-        .find((dt) => dt.name === name)
+        .find((dt) => dt.id === id)
         .options.find((o) => o.value === value).label
     },
     formatDate(dateSrc) {
@@ -139,7 +140,7 @@ export default {
     columns() {
       return this.dataTypes.map((item) => ({
         title: item.label,
-        key: item.name,
+        key: item.id,
       }))
     },
   },

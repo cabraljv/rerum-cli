@@ -64,5 +64,6 @@ export interface InputField {
   label: string
   id: string
   canFilter: boolean
+  canAdd: boolean
   required: boolean
 }

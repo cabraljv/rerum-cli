@@ -14,14 +14,14 @@
       </v-toolbar>
       <v-card-text>
         <v-form ref="form">
-          <template v-for="(item, index) in dataTypes" :key="index">
+          <template v-for="(item, index) of dataTypes" :key="index">
             <template v-if="item.canAdd">
               <!-- Campo de Texto -->
               <v-text-field
                 v-if="item.type === 'text'"
                 :label="item.label"
-                :name="item.name"
-                v-model="createdData[item.name]"
+                :name="item.id"
+                v-model="createdData[item.id]"
                 variant="outlined"
                 :rules="
                   item.required ? [(v) => !!v || 'Campo obrigatório'] : []
@@ -34,8 +34,8 @@
                 type="number"
                 :label="item.label"
                 variant="outlined"
-                :name="item.name"
-                v-model.number="createdData[item.name]"
+                :name="item.id"
+                v-model.number="createdData[item.id]"
                 :min="item.min"
                 :max="item.max"
                 :step="item.step"
@@ -45,7 +45,7 @@
               <v-menu
                 v-else-if="item.type === 'date'"
                 ref="menu"
-                v-model="dateMenus[item.name]"
+                v-model="dateMenus[item.id]"
                 :close-on-content-click="false"
                 v-model:return-value="item.value"
                 transition="scale-transition"
@@ -67,7 +67,7 @@
                   <v-row class="ma-0 justify-end pa-2">
                     <v-btn
                       color="primary"
-                      @click="dateMenus[item.name] = false"
+                      @click="dateMenus[item.id] = false"
                       class="ml-2"
                       >OK</v-btn
                     >
@@ -80,7 +80,7 @@
                 :items="item.options"
                 item-title="label"
                 item-value="value"
-                v-model="createdData[item.name]"
+                v-model="createdData[item.id]"
                 :label="item.label"
                 variant="outlined"
               ></v-select>
@@ -89,14 +89,14 @@
               <v-checkbox
                 v-else-if="item.type === 'checkbox'"
                 :label="item.label"
-                v-model="createdData[item.name]"
+                v-model="createdData[item.id]"
                 variant="outlined"
               ></v-checkbox>
 
               <!-- Grupo de Radio Buttons -->
               <v-radio-group
                 v-else-if="item.type === 'radio'"
-                v-model="createdData[item.name]"
+                v-model="createdData[item.id]"
                 :label="item.label"
                 variant="outlined"
               >
@@ -112,7 +112,7 @@
               <!-- Range Slider -->
               <v-slider
                 v-else-if="item.type === 'range'"
-                v-model="createdData[item.name]"
+                v-model="createdData[item.id]"
                 :label="item.label"
                 :min="item.min"
                 variant="outlined"
@@ -187,11 +187,11 @@ export default {
     }
   },
   created() {
-    console.log(this.dataTypes)
+    console.log(this.dataTypes, 'create datatype')
     for (const item of this.dataTypes) {
-      this.createdData[item.name] = null
+      this.createdData[item.id] = null
       if (item.type === 'date') {
-        this.dateMenus[item.name] = false
+        this.dateMenus[item.id] = false
       }
     }
   },

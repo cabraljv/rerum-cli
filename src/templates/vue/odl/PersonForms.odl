@@ -15,6 +15,7 @@ module PersonForms{
     config canFilter = true;
     config required = true;
     config id = "taxId";
+    config canAdd = true;
   }
   input IEmail {
     config type = "text";
@@ -22,6 +23,7 @@ module PersonForms{
     config canFilter = true;
     config required = true;
     config id = "email";
+    config canAdd = true;
   }
   input IPhone {
     config type = "text";
@@ -29,6 +31,7 @@ module PersonForms{
     config canFilter = true;
     config required = true;
     config id = "phone";
+    config canAdd = true;
   }
   class PersonForm use POForm {
     attribute Person poobject;
