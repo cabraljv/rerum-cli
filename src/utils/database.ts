@@ -1,13 +1,6 @@
 import { Sequelize, DataTypes, Model, type Optional } from 'sequelize'
 import { v4 } from 'uuid'
 
-// Initializing the SQLite database
-const db = new Sequelize({
-  dialect: 'sqlite',
-  storage: 'database.sqlite',
-  logging: false,
-})
-
 interface ItemAttributes {
   id: string
   name: string
@@ -72,79 +65,110 @@ interface DBModels {
   Association: typeof Association
 }
 
-export const setupDb = async (): Promise<DBModels> => {
-  // Define models
-  Item.init(
-    {
-      id: { type: DataTypes.STRING, primaryKey: true },
-      name: { type: DataTypes.STRING, allowNull: false },
-      className: { type: DataTypes.STRING, allowNull: false },
-      type: { type: DataTypes.STRING },
-      value: { type: DataTypes.STRING },
-      isArray: { type: DataTypes.BOOLEAN, defaultValue: false },
-    },
-    {
-      sequelize: db,
-      modelName: 'Item',
-      timestamps: false,
-    },
-  )
+class Database {
+  private readonly sequelize: Sequelize
+  public models: DBModels
 
-  File.init(
-    {
-      filename: { type: DataTypes.STRING, primaryKey: true },
-    },
-    {
-      sequelize: db,
-      modelName: 'File',
-      timestamps: false,
-    },
-  )
-
-  Association.init(
-    {
-      id: { type: DataTypes.STRING, primaryKey: true },
-      associationType: { type: DataTypes.STRING, allowNull: false },
-      referenceId: { type: DataTypes.STRING, allowNull: false },
-      referencedId: { type: DataTypes.STRING, allowNull: false },
-    },
-    {
-      sequelize: db,
-      modelName: 'Association',
-      timestamps: false,
-    },
-  )
-
-  // Define associations
-  Item.hasMany(Association, { as: 'references', foreignKey: 'referenceId' })
-  Association.belongsTo(Item, { as: 'reference', foreignKey: 'referenceId' })
-  Association.belongsTo(Item, { as: 'referenced', foreignKey: 'referencedId' })
-  Item.hasMany(Association, { as: 'referenced', foreignKey: 'referencedId' })
-
-  // Sync the database
-  await db.sync()
-
-  const preExistentClasses = [
-    {
-      name: 'POForm',
-    },
-  ]
-
-  for (const classToCreate of preExistentClasses) {
-    const exists = await Item.findOne({
-      where: { name: classToCreate.name, className: 'class' },
+  constructor() {
+    this.sequelize = new Sequelize({
+      dialect: 'sqlite',
+      storage: ':memory:',
+      logging: false,
     })
-    if (!exists)
-      await Item.create({
-        id: v4(),
-        name: classToCreate.name,
-        className: 'class',
-      })
+    this.models = {
+      Item,
+      File,
+      Association,
+    }
   }
 
-  return {
-    Item,
-    File,
-    Association,
+  async setup(): Promise<void> {
+    // Define models
+    this.models.Item.init(
+      {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        name: { type: DataTypes.STRING, allowNull: false },
+        className: { type: DataTypes.STRING, allowNull: false },
+        type: { type: DataTypes.STRING },
+        value: { type: DataTypes.STRING },
+        isArray: { type: DataTypes.BOOLEAN, defaultValue: false },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'Item',
+        timestamps: false,
+      },
+    )
+
+    this.models.File.init(
+      {
+        filename: { type: DataTypes.STRING, primaryKey: true },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'File',
+        timestamps: false,
+      },
+    )
+
+    this.models.Association.init(
+      {
+        id: { type: DataTypes.STRING, primaryKey: true },
+        associationType: { type: DataTypes.STRING, allowNull: false },
+        referenceId: { type: DataTypes.STRING, allowNull: false },
+        referencedId: { type: DataTypes.STRING, allowNull: false },
+      },
+      {
+        sequelize: this.sequelize,
+        modelName: 'Association',
+        timestamps: false,
+      },
+    )
+
+    // Define associations
+    this.models.Item.hasMany(Association, {
+      as: 'references',
+      foreignKey: 'referenceId',
+    })
+    this.models.Association.belongsTo(Item, {
+      as: 'reference',
+      foreignKey: 'referenceId',
+    })
+    this.models.Association.belongsTo(Item, {
+      as: 'referenced',
+      foreignKey: 'referencedId',
+    })
+    this.models.Item.hasMany(Association, {
+      as: 'referenced',
+      foreignKey: 'referencedId',
+    })
+
+    // Sync the database
+    await this.sequelize.sync()
+
+    const preExistentClasses = [
+      {
+        name: 'POForm',
+      },
+    ]
+
+    for (const classToCreate of preExistentClasses) {
+      const exists = await this.models.Item.findOne({
+        where: { name: classToCreate.name, className: 'class' },
+      })
+      if (!exists) {
+        await this.models.Item.create({
+          id: v4(),
+          name: classToCreate.name,
+          className: 'class',
+        })
+      }
+    }
+  }
+
+  async close(): Promise<void> {
+    await this.sequelize.close()
   }
 }
+
+export default Database

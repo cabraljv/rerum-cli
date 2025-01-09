@@ -4,6 +4,8 @@ import { ValidationService } from '../services/validation.service'
 import { Logger } from '../utils/logger'
 import { ObjectDictService } from '../services/object-dict.service'
 import { GenerationService } from '../services/generation.service'
+import { TextUtils } from '../utils/text-utils'
+import Database from '../utils/database'
 
 interface GenerateCommandOptions {
   _optionValues: {
@@ -13,8 +15,15 @@ interface GenerateCommandOptions {
   }
 }
 
-const validationService = new ValidationService()
-const objectDictService = new ObjectDictService()
+const validationService = new ValidationService(new TextUtils())
+
+const db = new Database()
+
+const objectDictService = new ObjectDictService(
+  new TextUtils(),
+  new FileSystem(),
+  db,
+)
 
 const generateCommand = new Command('generate')
   .description('Generate code based on ODL files')
@@ -23,10 +32,11 @@ const generateCommand = new Command('generate')
   .option('-c, --config <config>', 'Config file')
   .action(async (_, options: GenerateCommandOptions) => {
     const { input, config } = options._optionValues
+    const fs = new FileSystem()
 
-    const odlFiles = FileSystem.getAllOdlFiles(input)
+    const odlFiles = fs.getAllOdlFiles(input)
     for (const file of odlFiles) {
-      const content = FileSystem.readFileContent(file)
+      const content = fs.readFileContent(file)
       const validationErrorToken =
         await validationService.execValidation(content)
       if (validationErrorToken) {
@@ -39,9 +49,13 @@ const generateCommand = new Command('generate')
       await objectDictService.populateObjectDict(file)
     }
 
-    const generationConfig = FileSystem.getConfig(config)
+    const generationConfig = fs.getConfig(config)
 
-    const generationService = new GenerationService(generationConfig)
+    const generationService = new GenerationService(
+      generationConfig,
+      new FileSystem(),
+      db,
+    )
     await generationService.generateAllCodeFromObjectDict()
 
     console.log('Done!')

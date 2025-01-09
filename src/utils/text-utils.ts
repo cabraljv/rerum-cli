@@ -1,9 +1,9 @@
 import { type Token, type TokenType } from '../types/general'
 import { RESERVED_CHARS, RESERVED_WORDS, TYPES } from './config'
+import { type ITextUtils } from './utils'
 
-// eslint-disable-next-line @typescript-eslint/no-extraneous-class
-export class TextUtils {
-  static parseTextTokens(textContent: string): Token[] {
+export class TextUtils implements ITextUtils {
+  parseTextTokens(textContent: string): Token[] {
     const lines = textContent.split('\n')
 
     const tokens: Token[] = []
@@ -17,7 +17,7 @@ export class TextUtils {
     return tokens
   }
 
-  static parseLine(line: string, lineNumber: number): Token[] {
+  parseLine(line: string, lineNumber: number): Token[] {
     const tokens: Token[] = []
 
     let startColumn = 0
@@ -56,7 +56,7 @@ export class TextUtils {
     return tokens
   }
 
-  static getTokenType(token: string, lastTokenValue: string): TokenType {
+  getTokenType(token: string, lastTokenValue: string): TokenType {
     if (RESERVED_CHARS.includes(token)) {
       return 'RESERVED_CHAR'
     }

@@ -13,9 +13,10 @@ export class Logger {
   }
 
   static syntaxError(error: OdlValidationError): void {
+    const fs = new FileSystem()
     const token = error.token
     const file = error.file
-    const fileContent = FileSystem.readFileContent(file)
+    const fileContent = fs.readFileContent(file)
     const lines = fileContent.split('\n')
 
     // Index of the error line in the lines array

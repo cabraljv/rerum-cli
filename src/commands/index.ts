@@ -7,5 +7,3 @@ const program = new Command()
 program.version('1.0.0').addCommand(generateCommand).addCommand(createCommand)
 
 export default program
-
-

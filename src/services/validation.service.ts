@@ -1,10 +1,12 @@
-import { TextUtils } from '../utils/text-utils'
 import { stateMachine } from '../config/state-machine'
 import { type Token } from '../types/general'
+import { type TextUtils } from '../utils/text-utils'
 
 export class ValidationService {
+  constructor(private readonly textUtils: TextUtils) {}
+
   async execValidation(odlContent: string): Promise<null | Token> {
-    const tokens = TextUtils.parseTextTokens(odlContent)
+    const tokens = this.textUtils.parseTextTokens(odlContent)
 
     let currentState = ''
     let currentEvent = 'begin'
@@ -48,6 +50,9 @@ export class ValidationService {
           verifiedTokens,
           token,
         )
+
+        // return next token if there is no transition for the current token
+
         return token
       }
 

@@ -13,13 +13,19 @@ interface CreateCommandOptions {
   }
 }
 
+interface ProjectOptions {
+  type: 'vue' | 'dbmapping'
+  name: string
+}
+
 const createCommand = new Command('create')
   .description('Create a new project based on rerum-cli generator')
   .option('-t, --type <type>', 'Project type: vue, express')
   .option('-n, --name <name>', 'Project name')
   .action(async (_, options: CreateCommandOptions) => {
     console.log('Creating project...')
-    const { type, name } = options._optionValues
+    const { type, name } = options._optionValues as ProjectOptions
+
     const createProject = {
       vue: async () => {
         // create vue project
@@ -47,13 +53,27 @@ const createCommand = new Command('create')
 
         fs.mkdirSync(`${name}/odl`, { recursive: true })
       },
+      dbmapping: async () => {
+        console.log('Creating DB Mapping project...')
+        const targetDir = process.cwd() // Directory where the CLI is executed
+
+        await execAsync(
+          `mkdir ${targetDir}/${name} && cd ${name} && yarn init -y`,
+        )
+        console.log('Copying template files...')
+        const templateDir = path.join(__dirname, '../templates/dbmapping')
+
+        await fs.copy(templateDir, `${targetDir}/${name}`, { overwrite: true })
+        console.log('Finished copying template files')
+      },
     }
     if (!Object.keys(createProject).includes(type)) {
       console.log(`Project type ${type} is not supported`)
       return
     }
+
     try {
-      await createProject.vue()
+      await createProject[type]()
     } catch (error) {
       console.log('Error creating project', error)
       await fs.remove(name)

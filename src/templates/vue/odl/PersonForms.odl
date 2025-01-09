@@ -8,6 +8,9 @@ module PersonForms{
     config id = "name";
     config canFilter = true;
     config required = true;
+    config canAdd = true;
+    config min = 3;
+    config regex = "^[a-zA-Z ]+$";
   }
   input ITaxId {
     config type = "text";
@@ -35,7 +38,6 @@ module PersonForms{
   }
   class PersonForm use POForm {
     attribute Person poobject;
-    template DataTable [IName, ITaxId, IEmail,IPhone];
-
+    template DataTable [IName, ITaxId, IEmail, IPhone];
   }
 }

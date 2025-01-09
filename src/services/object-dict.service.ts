@@ -1,22 +1,30 @@
 import { TYPES } from '../utils/config'
-import { setupDb } from '../utils/database'
-import { FileSystem } from '../utils/file-system'
-import { TextUtils } from '../utils/text-utils'
+import type Database from '../utils/database'
+import { type FileSystem } from '../utils/file-system'
+import { type TextUtils } from '../utils/text-utils'
 import { Op } from 'sequelize'
 import * as uuid from 'uuid'
 
 export class ObjectDictService {
+  constructor(
+    private readonly textUtils: TextUtils,
+    private readonly fileSystem: FileSystem,
+    private readonly db: Database,
+  ) {}
+
   async populateObjectDict(odlFile: string): Promise<void> {
-    const { Association, Item, File } = await setupDb()
+    const { Association, Item, File } = this.db.models
 
     const existentFile = await File.findOne({ where: { filename: odlFile } })
+
     if (existentFile !== null) {
       return
     }
     await File.create({ filename: odlFile })
     console.log(`Populating object dict for file: ${odlFile}`)
-    const fileContent = FileSystem.readFileContent(odlFile)
-    const tokens = TextUtils.parseTextTokens(fileContent)
+    const fileContent = this.fileSystem.readFileContent(odlFile)
+    const tokens = this.textUtils.parseTextTokens(fileContent)
+    console.log('Tokens:', tokens)
 
     const importIdentifiers = []
     for (let i = 0; i < tokens.length; i++) {
@@ -37,8 +45,6 @@ export class ObjectDictService {
 
     const moduleImportsAndGenerates = []
     const moduleIds = []
-
-    console.log(tokens)
 
     for (let i = 0; i < tokens.length; i++) {
       const token = tokens[i]
@@ -303,7 +309,7 @@ export class ObjectDictService {
   }
 
   async getObjectDict(): Promise<any[]> {
-    const { Association, Item } = await setupDb()
+    const { Association, Item } = this.db.models
 
     const items: any = await Item.findAll({
       where: { type: 'class' },

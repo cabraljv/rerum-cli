@@ -7,22 +7,22 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export class FileSystem {
-  static getAllOdlFiles(dir: string): string[] {
+  getAllOdlFiles(dir: string): string[] {
     const files = fs.readdirSync(dir)
     return files
       .filter((file) => file.endsWith('.odl'))
       .map((file) => `${dir}/${file}`)
   }
 
-  static readFileContent(file: string): string {
+  readFileContent(file: string): string {
     return fs.readFileSync(file, 'utf-8')
   }
 
-  static fileExists(file: string): boolean {
+  fileExists(file: string): boolean {
     return fs.existsSync(file)
   }
 
-  static readTagsFile(file: string, className: string): TagsItem[] {
+  readTagsFile(file: string, className: string): TagsItem[] {
     const tagsDescription = fs.readFileSync(file, 'utf8')
     const isValidTagsItemValue = (value: string): value is TagsItemValues => {
       return ['name', 'type', 'className', 'isArray', 'id'].includes(
@@ -53,19 +53,19 @@ export class FileSystem {
     return tags
   }
 
-  static removeDbFile(): void {
+  removeDbFile(): void {
     if (fs.existsSync('database.sqlite')) {
       fs.unlinkSync('database.sqlite')
     }
   }
 
-  static writeToFile(file: string, content: string): void {
+  writeToFile(file: string, content: string): void {
     const dir = file.split('/').slice(0, -1).join('/')
     fs.mkdirSync(dir, { recursive: true })
     fs.writeFileSync(file, content, 'utf-8')
   }
 
-  static getConfig(flags: any): GenerationConfig {
+  getConfig(flags: any): GenerationConfig {
     const configsFile: string = flags?.config ?? 'rgen.conf.json'
 
     const configContentTxt = fs.readFileSync(configsFile, 'utf-8')

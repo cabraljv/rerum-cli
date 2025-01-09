@@ -4,10 +4,11 @@ import {
   type TagsItem,
   type TemplateInputs,
   type InputField,
+  type IAssociation,
 } from '../types/general'
 import { TYPES } from '../utils/config'
-import { setupDb } from '../utils/database'
-import { FileSystem } from '../utils/file-system'
+import type Database from '../utils/database'
+import { type FileSystem } from '../utils/file-system'
 
 // eslint-disable-next-line @typescript-eslint/consistent-indexed-object-style
 interface MutableInputField extends InputField {
@@ -15,11 +16,15 @@ interface MutableInputField extends InputField {
 }
 
 export class GenerationService {
-  constructor(private readonly config: GenerationConfig) {}
+  constructor(
+    private readonly config: GenerationConfig,
+    private readonly fs: FileSystem,
+    private readonly db: Database,
+  ) {}
 
   async generateAllCodeFromObjectDict(): Promise<void> {
     console.log('Generating code')
-    const { Association, Item } = await setupDb()
+    const { Association, Item } = this.db.models
 
     const modules: IItem[] = await Item.findAll({
       where: { className: 'module' },
@@ -50,8 +55,8 @@ export class GenerationService {
         await this.generateAllCodeFromObjectDictSingleFile(
           modulesToGenerate,
           archetype.tplFile,
-          FileSystem.fileExists(archetype.outputFileName)
-            ? FileSystem.readFileContent(archetype.outputFileName)
+          this.fs.fileExists(archetype.outputFileName)
+            ? this.fs.readFileContent(archetype.outputFileName)
             : '',
         )
         continue
@@ -74,7 +79,7 @@ export class GenerationService {
     existentOutputFileContent: string,
   ): Promise<void> {
     console.log(`Generating single file code using ${tplFile}`)
-    let tplContent = FileSystem.readFileContent(tplFile)
+    let tplContent = this.fs.readFileContent(tplFile)
     const contentTags = this.extractContentBetweenTags(tplContent)
 
     for (const contentTag of contentTags) {
@@ -113,11 +118,11 @@ export class GenerationService {
 
     const outputFilePath = `${this.config.outputDir}/${filename}`
 
-    FileSystem.writeToFile(outputFilePath, tplContent)
+    this.fs.writeToFile(outputFilePath, tplContent)
   }
 
   async generateModuleCode(moduleId: string, tplFile: string): Promise<void> {
-    const { Item } = await setupDb()
+    const { Item } = this.db.models
     const moduleItem: IItem | null = await Item.findOne({
       where: { id: moduleId },
     })
@@ -140,18 +145,18 @@ export class GenerationService {
 
     const outputFilePath = `${this.config.outputDir}/${filename}`
 
-    const tplFileContent = FileSystem.readFileContent(tplFile)
+    const tplFileContent = this.fs.readFileContent(tplFile)
 
     const content = await this.insertItemContent(
       moduleId,
       tplFileContent,
       outputFilePath,
-      FileSystem.fileExists(outputFilePath)
-        ? FileSystem.readFileContent(outputFilePath)
+      this.fs.fileExists(outputFilePath)
+        ? this.fs.readFileContent(outputFilePath)
         : '',
     )
 
-    FileSystem.writeToFile(outputFilePath, content)
+    this.fs.writeToFile(outputFilePath, content)
   }
 
   async insertItemContent(
@@ -161,7 +166,7 @@ export class GenerationService {
     existentOutputFileContent: string,
     currentClassId: string | null = null,
   ): Promise<string> {
-    const { Association, Item } = await setupDb()
+    const { Association, Item } = this.db.models
 
     const contentTags = this.extractContentBetweenTags(itemContent)
 
@@ -251,7 +256,16 @@ export class GenerationService {
           .replace(`@begin_${currentTagType}@`, '')
           .replace(`@end_${currentTagType}@`, '')
 
-        const item = await Item.findOne({ where: { id: moduleId } })
+        const itemDb = await Item.findOne({ where: { id: moduleId } })
+
+        const item = new Item(
+          itemDb?.dataValues ?? {
+            id: '',
+            name: '',
+            className: '',
+            type: '',
+          },
+        )
 
         if (!item) {
           console.error(`Module ${moduleId} not found`)
@@ -365,7 +379,7 @@ export class GenerationService {
   }
 
   private async verifyClassUse(classId: string): Promise<string | null> {
-    const { Item, Association } = await setupDb()
+    const { Item, Association } = this.db.models
 
     const currentClass = await Item.findByPk(classId)
 
@@ -386,7 +400,7 @@ export class GenerationService {
   }
 
   private async getClassAttributes(classId: string): Promise<IItem[]> {
-    const { Item, Association } = await setupDb()
+    const { Item, Association } = this.db.models
     const classUse = await this.verifyClassUse(classId)
     if (!classUse || classUse !== 'POForm') {
       const dbAssociationAttributes = await Association.findAll({
@@ -403,7 +417,7 @@ export class GenerationService {
       })
 
       const validItems = dbAssociationAttributes.map(
-        (association) => association.referenced,
+        (association: IAssociation) => association.referenced,
       )
       const validItemsToReturn = []
       for (const item of validItems) {
@@ -425,7 +439,7 @@ export class GenerationService {
         ],
       })
       const poObjectClass = dbAssociationAttributes.find(
-        (as) => as.referenced?.name === 'poobject',
+        (as: IAssociation) => as.referenced?.name === 'poobject',
       )
       if (!poObjectClass) throw new Error('poobject attribute not found')
 
@@ -443,7 +457,7 @@ export class GenerationService {
       })
 
       const validItems = usedClassAttributes.map(
-        (association) => association.referenced,
+        (association: IAssociation) => association.referenced,
       )
 
       const validItemsToReturn = []
@@ -456,7 +470,7 @@ export class GenerationService {
   }
 
   private async getCorrectClassVariables(classItem: IItem): Promise<IItem> {
-    const { Item, Association } = await setupDb()
+    const { Item, Association } = this.db.models
     const classUse = await this.verifyClassUse(classItem.id)
     if (classUse) {
       const dbAssociationAttributes = await Association.findAll({
@@ -472,7 +486,7 @@ export class GenerationService {
         ],
       })
       const poObjectClass = dbAssociationAttributes.find(
-        (as) => as.referenced?.name === 'poobject',
+        (as: IAssociation) => as.referenced?.name === 'poobject',
       )
 
       if (!poObjectClass?.referenced)
@@ -491,7 +505,7 @@ export class GenerationService {
   private async getClassTemplateInputs(
     classId: string,
   ): Promise<TemplateInputs | null> {
-    const { Item, Association } = await setupDb()
+    const { Item, Association } = this.db.models
 
     const classTemplate = await Association.findAll({
       where: {
@@ -506,7 +520,7 @@ export class GenerationService {
     })
 
     const templateAssociation = classTemplate.find(
-      (i) => i.associationType === 'template',
+      (i: IAssociation) => i.associationType === 'template',
     )
 
     if (!templateAssociation) {
@@ -544,7 +558,7 @@ export class GenerationService {
       })
       for (const inputConfigItem of inputConfigs) {
         if (!inputConfigItem.referenced) continue
-        const inputItemKey = inputConfigItem.referenced.name
+        const inputItemKey = `${inputConfigItem.referenced.name}`
         if (
           Object.prototype.hasOwnProperty.call(baseTemplateInput, inputItemKey)
         ) {
@@ -655,10 +669,7 @@ export class GenerationService {
       .filter((variable) => variable.replace(/\s/gm, '') !== '')
       .map((variable) => variable.replace(/#/g, ''))
 
-    const variablesObj = FileSystem.readTagsFile(
-      this.config.tagsFile,
-      `${type}`,
-    )
+    const variablesObj = this.fs.readTagsFile(this.config.tagsFile, `${type}`)
 
     for (const variable of variablesInContent) {
       const isIf = variable.includes('?')
@@ -699,7 +710,7 @@ export class GenerationService {
           variableKey.value === 'type' &&
           !TYPES.includes(`${variableValue}`)
         ) {
-          const { Item } = await setupDb()
+          const { Item } = this.db.models
           const typeItem: IItem | null = await Item.findOne({
             where: { id: variableValue },
           })

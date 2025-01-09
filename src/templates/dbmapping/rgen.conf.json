@@ -1,0 +1,12 @@
+{
+  "tagsFile": "rgen.tags",
+  "outputDir": "src",
+  "archetypesFiles": [
+    {
+      "tplFile": "tpl/class.tpl",
+      "outputFileName": "@module@.js",
+      "modulesToGenerate": ["Pessoa"],
+      "alias": "Pessoa"
+    }
+  ]
+}
