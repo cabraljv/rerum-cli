@@ -12,7 +12,7 @@ interface CreateCommandOptions {
     name: string
   }
 }
-
+console.log('Creating project...')
 const createCommand = new Command('create')
   .description('Create a new project based on rerum-cli generator')
   .option('-t, --type <type>', 'Project type: vue, express')
@@ -47,13 +47,26 @@ const createCommand = new Command('create')
 
         fs.mkdirSync(`${name}/odl`, { recursive: true })
       },
+      dbmapping: async () => {
+        // create dbmapping project
+        const targetDir = process.cwd() // Directory where the CLI is executed
+        console.log(`Creating dbmapping project ${name}`)
+        await execAsync(`mkdir ${targetDir}/${name}`)
+        console.log('Copying template files...')
+        const templateDir = path.join(__dirname, '../templates/dbmapping')
+
+        await fs.copy(templateDir, `${targetDir}/${name}`, { overwrite: true })
+
+        console.log('Done!')
+      },
     }
     if (!Object.keys(createProject).includes(type)) {
       console.log(`Project type ${type} is not supported`)
       return
     }
     try {
-      await createProject.vue()
+      if (type === 'vue') await createProject.vue()
+      if (type === 'dbmapping') await createProject.dbmapping()
     } catch (error) {
       console.log('Error creating project', error)
       await fs.remove(name)

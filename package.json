@@ -7,7 +7,7 @@
     "rerum-cli": "./dist/bin/rerum-cli.js"
   },
   "scripts": {
-    "build": "tsc && cpx 'src/templates/vue/**/*' dist/templates/vue"
+    "build": "tsc && cpx 'src/templates/**/*' dist/templates"
   },
   "pkg": {
     "scripts": [

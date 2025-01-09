@@ -1,0 +1,31 @@
+{
+  "tagsFile": "rgen.tags",
+  "outputDir": "src",
+  "archetypesFiles": [
+    {
+      "tplFile": "tpl/class.tpl",
+      "outputFileName": "@module@.js",
+      "modulesToGenerate": ["Person"]
+    },
+    {
+      "tplFile": "tpl/pomanager.tpl",
+      "outputFileName": "@module@-POManager.js",
+      "modulesToGenerate": ["Person"]
+    },
+    {
+      "tplFile": "tpl/tbobject.tpl",
+      "outputFileName": "@module@-PODTable.js",
+      "modulesToGenerate": ["Person"]
+    },
+    {
+      "tplFile": "tpl/pormap.tpl",
+      "outputFileName": "@module@-PORMap.js",
+      "modulesToGenerate": ["Person"]
+    },
+    {
+      "tplFile": "tpl/colobject.tpl",
+      "outputFileName": "Col@module@.js",
+      "modulesToGenerate": ["Person"]
+    }
+  ]
+}
